@@ -1,37 +1,32 @@
 """
-gaugeout2serial — bridge OutGauge UDP telemetry to a Moza R5 dash over serial.
+gaugeout2serial — bridge sim telemetry to serial-attached racing-wheel dashes.
+
+Architecture:
+    sources.*  → produce TelemetrySample objects (currently OutGauge UDP)
+    devices.*  → consume TelemetrySample / DeviceState (currently Moza R5)
+    bridge     → wires a source to one or more devices and runs the loop
 """
 from __future__ import annotations
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
-from .protocol import (
-    frame, indicator_mode_frame, rpm_mode_frame, telemetry_frame,
-    build_bitmask, single_led_mask,
-    NO_DATA_PAYLOAD, ZERO_ONLY_PAYLOAD, DARK_PAYLOAD,
-    DASH, START, MAGIC,
-)
-from .outgauge import open_socket, parse_rpm
-from .wheel import (
-    open_wheel, send_mode_init, send_telemetry_pct,
-    send_no_data, send_zero_only, send_single_led, send_dark,
-    startup_blink,
-)
+from .bridge import Bridge
 from .cli import main
+from .devices.base import Device, DeviceState
+from .devices.discovery import all_device_classes, auto_discover_devices
+from .devices.moza_r5.device import MozaR5
+from .sources.base import TelemetrySource
+from .sources.outgauge import OutGaugePacket, OutGaugeSource
+from .telemetry import TelemetrySample
 
 __all__ = [
     "__version__",
-    # protocol
-    "frame", "indicator_mode_frame", "rpm_mode_frame", "telemetry_frame",
-    "build_bitmask", "single_led_mask",
-    "NO_DATA_PAYLOAD", "ZERO_ONLY_PAYLOAD", "DARK_PAYLOAD",
-    "DASH", "START", "MAGIC",
-    # outgauge
-    "open_socket", "parse_rpm",
-    # wheel
-    "open_wheel", "send_mode_init", "send_telemetry_pct",
-    "send_no_data", "send_zero_only", "send_single_led", "send_dark",
-    "startup_blink",
-    # cli
     "main",
+    "Bridge",
+    "TelemetrySample",
+    "TelemetrySource",
+    "OutGaugeSource", "OutGaugePacket",
+    "Device", "DeviceState",
+    "auto_discover_devices", "all_device_classes",
+    "MozaR5",
 ]

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gaugeout2serial"
-version = "0.1.0"
+version = "0.2.0"
 description = "OutGauge UDP telemetry → serial-attached racing-wheel dashes (Moza R5 supported)"
 readme = "README.md"
 license = { file = "LICENSE" }

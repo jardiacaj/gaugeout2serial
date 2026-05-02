@@ -76,8 +76,9 @@ every iteration (≥1 Hz when idle, ≈packet rate when active).
 ### Hardware
 
 - Moza R5 wheelbase with the dash module, plugged in over USB.
-- The default device path is the by-id symlink for one specific R5; pass
-  `--devpath` to override.
+- Auto-discovered by scanning `/dev/serial/by-id/` for
+  `usb-Gudsen_MOZA_R5_Base_*`. Pass `--moza-r5-devpath PATH` if you want
+  to override.
 
 ### Sim
 
@@ -105,13 +106,44 @@ You should see:
 ```
 gaugeout2serial [options]
 
-  --devpath PATH    serial device path of the wheel
-                    (default: /dev/serial/by-id/usb-Gudsen_MOZA_R5_Base_…)
-  --baud N          serial baud rate (default 115200)
-  --host HOST       UDP host to bind for OutGauge (default 0.0.0.0)
-  --port N          OutGauge UDP port (default 4444)
-  -v, --verbose     print rpm/pct/mask once per second + state transitions
+  source (OutGauge UDP):
+    --host HOST                 UDP host to bind (default 0.0.0.0)
+    --port N                    UDP port (default 4444)
+
+  devices:
+    --moza-r5-devpath PATH      explicit Moza R5 serial path
+                                (default: auto-discover via /dev/serial/by-id/)
+    --moza-r5-baud N            Moza R5 baud rate (default 115200)
+    --list-devices              list auto-discovered devices and exit
+
+  -v, --verbose                 print state transitions and per-second
+                                telemetry summaries
 ```
+
+## Architecture
+
+```
+sources/                   ← produce TelemetrySample
+  base.TelemetrySource       (ABC)
+  outgauge.OutGaugeSource    (UDP — current)
+                              + OutGaugePacket (full LFS-format decoder)
+
+devices/                   ← consume TelemetrySample / DeviceState
+  base.Device                (ABC) + DeviceState enum
+  discovery.auto_discover_devices()
+  moza_r5/                   ← first supported device
+    device.MozaR5              (Device implementation)
+    protocol.py                (frame builder + LED bitmasks)
+
+bridge.Bridge              ← state machine, source → devices fan-out
+cli.main                   ← arg parsing + glue
+telemetry.TelemetrySample  ← sim-agnostic sample passed source → device
+```
+
+Adding a new source means subclassing `TelemetrySource` and producing
+`TelemetrySample`s. Adding a new device means subclassing `Device` and
+implementing the four `show_*` / `startup_indicator` methods plus a
+`discover()` classmethod for autodetection.
 
 ## Acknowledgements
 

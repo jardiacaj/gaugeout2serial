@@ -1,7 +1,7 @@
-"""Pure-function tests for the Moza framing layer. No serial I/O."""
+"""Pure-function tests for the Moza R5 framing layer. No serial I/O."""
 import unittest
 
-from gaugeout2serial import protocol
+from gaugeout2serial.devices.moza_r5 import protocol
 
 
 class FrameTests(unittest.TestCase):
