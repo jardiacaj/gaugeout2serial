@@ -3,13 +3,23 @@
 [![CI](https://github.com/jardiacaj/gaugeout2serial/actions/workflows/ci.yml/badge.svg)](https://github.com/jardiacaj/gaugeout2serial/actions/workflows/ci.yml)
 
 Bridge an OutGauge UDP telemetry stream (BeamNG.drive, LFS, anything that
-emits the standard 92/96-byte OutGauge packet) to the dash RPM LEDs of a
-**Moza R5** racing wheel over its serial USB interface.
+emits the standard 92/96-byte OutGauge packet) to a serial-attached racing-
+wheel dash on Linux.
 
-The wheel shows a 10-LED shift bar that fills from 75 % to 95 % of the
-auto-detected redline, with a "shift now" blink at 97 %. When the source
-is paused or the engine is off, the bar flips to a dedicated symmetric
-indicator so it's obvious the bridge is alive.
+OutGauge is the source-side common denominator. Each supported wheel speaks
+its own serial dialect, so device-specific framing lives in its own module
+(currently `protocol.py` for the Moza dash); adding a new wheel means adding
+a new protocol/wheel module pair, not changing the receive loop.
+
+Currently supported devices:
+
+- **Moza R5** dash — 10-LED shift bar, 75 %–95 % solid, blink at 97 %.
+
+The bar uses an autodiscovered redline: it tracks the highest RPM seen and
+scales the bar to 95 % of that, resetting after 5 s of no engine RPM (so
+swapping cars works without a restart). When the source is paused, the
+engine is off, or no UDP packets are arriving at all, the bar flips to a
+dedicated symmetric indicator so it's obvious the bridge is alive.
 
 ## Why
 
@@ -36,8 +46,8 @@ State machine the wheel sees:
 | condition | LEDs |
 |-----------|------|
 | active engine RPM | thermometer bar 75 %–95 %, blink at 97 % |
-| OutGauge connected but engine off / paused (≥5 s of zero RPM) | LEDs 4 + 7 |
-| no UDP packet for >1 s | LEDs 5 + 6 |
+| OutGauge connected but engine off / paused (≥5 s of zero RPM) | LEDs 1 + 10 (extremes) |
+| no UDP packet for >1 s | LEDs 5 + 6 (centre) |
 
 The wheel firmware reverts to a slow-flash standby state if it stops
 seeing writes for a few seconds, so the loop refreshes the current state

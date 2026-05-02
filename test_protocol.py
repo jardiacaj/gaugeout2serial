@@ -88,9 +88,9 @@ class IndicatorPayloadTests(unittest.TestCase):
         # LED 5 = byte9 bit 4 (0x10); LED 6 = byte9 bit 5 (0x20). 0x10|0x20 = 0x30.
         self.assertEqual(protocol.NO_DATA_PAYLOAD, bytes([0, 0, 0, 0x30]))
 
-    def test_zero_only_lights_leds_4_and_7(self):
-        # LED 4 = byte9 bit 3 (0x08); LED 7 = byte9 bit 6 (0x40). 0x08|0x40 = 0x48.
-        self.assertEqual(protocol.ZERO_ONLY_PAYLOAD, bytes([0, 0, 0, 0x48]))
+    def test_zero_only_lights_leds_1_and_10(self):
+        # LED 1 = byte9 bit 0 (0x01); LED 10 = byte8 bit 1 (0x02).
+        self.assertEqual(protocol.ZERO_ONLY_PAYLOAD, bytes([0, 0, 0x02, 0x01]))
 
 
 if __name__ == "__main__":

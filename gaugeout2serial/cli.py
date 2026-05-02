@@ -121,7 +121,7 @@ def main(argv=None) -> int:
                 wheel.send_zero_only(s)
                 last_pct = -1
                 if not in_zero_only_prev and args.verbose:
-                    print(f"only zero rpm for {RESET_AFTER:.0f}s -> LEDs 4+7")
+                    print(f"only zero rpm for {RESET_AFTER:.0f}s -> LEDs 1+10")
             else:
                 if peak_rpm > 0:
                     full_scale = peak_rpm * REDLINE_FRACTION

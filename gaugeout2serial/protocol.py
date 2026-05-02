@@ -81,6 +81,6 @@ def single_led_mask(n: int) -> bytes:
 
 
 # Symmetric "no telemetry" indicators on a 10-LED row (no true centre):
-NO_DATA_PAYLOAD = bytes([0x00, 0x00, 0x00, 0x30])  # LEDs 5+6
-ZERO_ONLY_PAYLOAD = bytes([0x00, 0x00, 0x00, 0x48])  # LEDs 4+7
+NO_DATA_PAYLOAD = bytes([0x00, 0x00, 0x00, 0x30])    # LEDs 5+6 (centre)
+ZERO_ONLY_PAYLOAD = bytes([0x00, 0x00, 0x02, 0x01])  # LEDs 1+10 (extremes)
 DARK_PAYLOAD = bytes([0x00, 0x00, 0x00, 0x00])
