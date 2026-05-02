@@ -98,6 +98,16 @@ class BridgeStateTests(unittest.TestCase):
         self.assertEqual(self._last_state_event(), "idle")
         self.assertEqual(self.bridge._peak_rpm, 0.0)  # peak resets after IDLE
 
+    def test_stop_event_breaks_run_loop(self):
+        # Pre-fill the queue with samples so _tick has work each iteration.
+        for _ in range(100):
+            self.fake_source.queue.append(_sample(rpm=4000))
+        self.bridge.stop()
+        # run() should return immediately because the stop flag is set
+        # before we even enter the while loop.
+        self.bridge.run()
+        # If we got here without hanging, the loop honoured the stop flag.
+
     def test_peak_resets_only_after_long_zero_streak(self):
         self.fake_source.queue.append(_sample(rpm=4000))
         self.bridge._tick(now=0.0)

@@ -101,6 +101,31 @@ You should see:
 2. `LEDs 5+6` lit until the first OutGauge packet arrives.
 3. The bar tracking RPM once you go to gameplay with an engine on.
 
+### Wrap a game (mangohud / gamemoderun style)
+
+`gaugeout2serial` can also wrap the game command, so the bridge starts
+when the game does and exits when the game exits — drop-in compatible
+with Steam launch options.
+
+Standalone:
+```bash
+gaugeout2serial -- /path/to/BeamNG.drive --some-arg
+```
+
+Steam launch options:
+```
+gaugeout2serial -- %command%
+```
+
+Stack with other wrappers:
+```
+gamemoderun gaugeout2serial -- %command%
+```
+
+The wrapper forwards `SIGINT` and `SIGTERM` to the child, so Ctrl+C in
+the terminal still reaches the game; the bridge cleans up the wheel
+state and propagates the game's exit code as its own.
+
 ## CLI
 
 ```

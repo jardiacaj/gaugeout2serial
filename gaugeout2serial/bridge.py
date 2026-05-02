@@ -9,6 +9,7 @@ logic.
 """
 from __future__ import annotations
 
+import threading
 import time
 from typing import List, Optional
 
@@ -42,6 +43,13 @@ class Bridge:
         self._last_heartbeat_time = 0.0
         self._last_telemetry_log_time = 0.0
         self._previous_state: Optional[DeviceState] = None
+        self._stop_event = threading.Event()
+
+    def stop(self) -> None:
+        """Signal the run() loop to exit at the next tick. Safe to call from
+        another thread (used by the wrapped-command path when the child
+        process exits)."""
+        self._stop_event.set()
 
     def run(self) -> None:
         self.source.open()
@@ -57,7 +65,7 @@ class Bridge:
         self._last_heartbeat_time = start_time
 
         try:
-            while True:
+            while not self._stop_event.is_set():
                 self._tick(time.monotonic())
         except KeyboardInterrupt:
             print("\nshutting down")
