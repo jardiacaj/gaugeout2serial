@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gaugeout2serial"
+version = "0.1.0"
+description = "OutGauge UDP telemetry → Moza R5 dash RPM LEDs over serial"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+authors = [{ name = "Joan Ardiaca Jové" }]
+keywords = ["OutGauge", "BeamNG", "LFS", "Moza", "racing", "telemetry", "serial"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Games/Entertainment",
+    "Topic :: System :: Hardware",
+]
+dependencies = [
+    "pyserial>=3.5",
+]
+
+[project.scripts]
+gaugeout2serial = "gaugeout2serial:main"
+
+[project.urls]
+Homepage = "https://github.com/jardiacaj/gaugeout2serial"
+"Bug Tracker" = "https://github.com/jardiacaj/gaugeout2serial/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["gaugeout2serial*"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = [
+    "E501",  # line too long — not enforced (some arg/format strings are inherently long)
+]
