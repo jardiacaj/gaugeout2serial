@@ -3,18 +3,18 @@ import struct
 import unittest
 
 from gaugeout2serial.sources.outgauge import (
-    OutGaugePacket, PACKET_FORMAT, PACKET_SIZE, PACKET_SIZE_WITH_ID,
+    OutGaugeFlag, OutGaugePacket, PACKET_FORMAT, PACKET_SIZE, PACKET_SIZE_WITH_ID,
 )
 
 
 def _make_packet(rpm=0.0, *, with_id=False, gear=1, throttle=0.0, brake=0.0,
-                 car=b"GTR\x00", display1=b"", display2=b"") -> bytes:
+                 flags=0, car=b"GTR\x00", display1=b"", display2=b"") -> bytes:
     """Synthesise a complete OutGauge packet for tests."""
     body = struct.pack(
         PACKET_FORMAT,
         12345,                       # time_ms
         car.ljust(4, b"\x00"),       # car
-        0,                           # flags
+        flags,                       # flags
         gear,                        # gear
         0,                           # plid
         50.0,                        # speed_mps
@@ -78,6 +78,45 @@ class FromBytesTests(unittest.TestCase):
         self.assertAlmostEqual(pkt.fuel, 0.5, places=3)
         self.assertAlmostEqual(pkt.oil_pressure_bar, 4.0, places=3)
         self.assertAlmostEqual(pkt.engine_temp_c, 90.0, places=3)
+
+
+class FlagsTests(unittest.TestCase):
+    def test_no_flags_set(self):
+        pkt = OutGaugePacket.from_bytes(_make_packet(flags=0))
+        self.assertEqual(pkt.decoded_flags, OutGaugeFlag(0))
+        self.assertFalse(pkt.shift_held)
+        self.assertFalse(pkt.ctrl_held)
+        self.assertFalse(pkt.show_turbo)
+        self.assertFalse(pkt.prefers_km)
+        self.assertFalse(pkt.prefers_bar)
+
+    def test_shift_and_ctrl_bits(self):
+        pkt = OutGaugePacket.from_bytes(_make_packet(flags=0x0003))
+        self.assertTrue(pkt.shift_held)
+        self.assertTrue(pkt.ctrl_held)
+        self.assertEqual(pkt.decoded_flags,
+                         OutGaugeFlag.SHIFT | OutGaugeFlag.CTRL)
+
+    def test_unit_preference_flags(self):
+        pkt = OutGaugePacket.from_bytes(_make_packet(flags=0x4000))
+        self.assertTrue(pkt.prefers_km)
+        self.assertFalse(pkt.prefers_bar)
+
+        pkt = OutGaugePacket.from_bytes(_make_packet(flags=0x8000))
+        self.assertTrue(pkt.prefers_bar)
+        self.assertFalse(pkt.prefers_km)
+
+    def test_turbo_flag(self):
+        pkt = OutGaugePacket.from_bytes(_make_packet(flags=0x2000))
+        self.assertTrue(pkt.show_turbo)
+
+    def test_unknown_bits_excluded_from_decoded_flags(self):
+        # 0x0100 is undocumented in the LFS spec — it should drop out of
+        # decoded_flags but still appear in the raw `flags` field.
+        pkt = OutGaugePacket.from_bytes(_make_packet(flags=0x0103))
+        self.assertEqual(pkt.flags, 0x0103)
+        self.assertEqual(pkt.decoded_flags,
+                         OutGaugeFlag.SHIFT | OutGaugeFlag.CTRL)
 
 
 class ToSampleTests(unittest.TestCase):

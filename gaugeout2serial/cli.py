@@ -8,7 +8,7 @@ from typing import List
 from .bridge import Bridge
 from .devices.base import Device
 from .devices.discovery import auto_discover_devices, all_device_classes
-from .devices.moza_r5.device import DEFAULT_BAUD as MOZA_R5_BAUD, MozaR5
+from .devices.moza_r5.device import DEFAULT_BAUD_RATE as MOZA_R5_BAUD_RATE, MozaR5
 from .sources.outgauge import OutGaugeSource
 
 
@@ -28,8 +28,8 @@ def _parse_args(argv) -> argparse.Namespace:
     dev.add_argument("--moza-r5-devpath", default=None,
                      help="explicit Moza R5 serial path "
                           "(default: auto-discover via /dev/serial/by-id/)")
-    dev.add_argument("--moza-r5-baud", type=int, default=MOZA_R5_BAUD,
-                     help=f"Moza R5 baud rate (default {MOZA_R5_BAUD})")
+    dev.add_argument("--moza-r5-baud", type=int, default=MOZA_R5_BAUD_RATE,
+                     help=f"Moza R5 baud rate (default {MOZA_R5_BAUD_RATE})")
     dev.add_argument("--list-devices", action="store_true",
                      help="list auto-discovered devices and exit")
 
@@ -42,7 +42,7 @@ def _resolve_devices(args: argparse.Namespace) -> List[Device]:
     """Return devices to drive. Explicit CLI overrides take precedence over
     autodiscovery; if both kinds are present we use only the explicit ones."""
     if args.moza_r5_devpath:
-        return [MozaR5(args.moza_r5_devpath, baud=args.moza_r5_baud)]
+        return [MozaR5(args.moza_r5_devpath, baud_rate=args.moza_r5_baud)]
     return auto_discover_devices(all_device_classes())
 
 

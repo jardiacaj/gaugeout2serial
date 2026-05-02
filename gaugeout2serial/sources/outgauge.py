@@ -33,10 +33,24 @@ import socket
 import struct
 import time
 from dataclasses import dataclass
+from enum import IntFlag
 from typing import Optional
 
 from .base import TelemetrySource
 from ..telemetry import TelemetrySample
+
+
+class OutGaugeFlag(IntFlag):
+    """Flags bitfield (u16 at packet offset 8). LFS-defined `OG_*` constants.
+
+    The two key flags are SHIFT/CTRL (modifier keys held during the frame)
+    and the unit/turbo-display preferences the sim wants the dash to honour.
+    """
+    SHIFT = 0x0001            # OG_SHIFT — shift key held
+    CTRL = 0x0002             # OG_CTRL  — ctrl key held
+    TURBO = 0x2000            # OG_TURBO — show the turbo gauge
+    KM = 0x4000               # OG_KM    — user prefers km/h (else mph)
+    BAR = 0x8000              # OG_BAR   — user prefers bar (else psi)
 
 
 PACKET_FORMAT = "<I4sHBBfffffffIIfff16s16s"
@@ -78,6 +92,38 @@ class OutGaugePacket:
     display1: str
     display2: str
     id: Optional[int] = None
+
+    @property
+    def decoded_flags(self) -> OutGaugeFlag:
+        """Return the flags field as an IntFlag mask of known bits.
+
+        Bits outside the documented LFS set are masked out, so unrecognised
+        future flags don't show up here; inspect `self.flags` for the raw
+        wire value.
+        """
+        known = (OutGaugeFlag.SHIFT | OutGaugeFlag.CTRL | OutGaugeFlag.TURBO
+                 | OutGaugeFlag.KM | OutGaugeFlag.BAR)
+        return OutGaugeFlag(self.flags & int(known))
+
+    @property
+    def shift_held(self) -> bool:
+        return bool(self.flags & OutGaugeFlag.SHIFT)
+
+    @property
+    def ctrl_held(self) -> bool:
+        return bool(self.flags & OutGaugeFlag.CTRL)
+
+    @property
+    def show_turbo(self) -> bool:
+        return bool(self.flags & OutGaugeFlag.TURBO)
+
+    @property
+    def prefers_km(self) -> bool:
+        return bool(self.flags & OutGaugeFlag.KM)
+
+    @property
+    def prefers_bar(self) -> bool:
+        return bool(self.flags & OutGaugeFlag.BAR)
 
     @classmethod
     def from_bytes(cls, data: bytes) -> Optional["OutGaugePacket"]:
