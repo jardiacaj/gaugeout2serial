@@ -149,22 +149,39 @@ class R3EPacket:
             max_rpm = self.max_engine_rpm
         # Negative engine RPM is a "no data" sentinel from the relay.
         rpm: Optional[float] = self.engine_rpm if self.engine_rpm >= 0 else None
-        # Gear: -2 means "N/A", drop to None.
+        # Gear: R3E's -2 sentinel becomes None; everything else (-1..N) maps
+        # straight to our normalised convention.
         gear: Optional[int] = self.gear if self.gear > -2 else None
+        num_gears: Optional[int] = self.num_gears if self.num_gears >= 0 else None
+        upshift_rpm: Optional[float] = (self.upshift_rpm
+                                        if self.upshift_rpm > 0 else None)
+        fuel_fraction: Optional[float] = (self.fuel_left / self.fuel_capacity
+                                          if self.fuel_capacity > 0 else None)
+        fuel_left: Optional[float] = (self.fuel_left
+                                      if self.fuel_left >= 0 else None)
+        fuel_capacity: Optional[float] = (self.fuel_capacity
+                                          if self.fuel_capacity > 0 else None)
         return TelemetrySample(
             timestamp=time.monotonic() if timestamp is None else timestamp,
             rpm=rpm,
             max_rpm=max_rpm,
-            speed_mps=self.car_speed_mps,
+            upshift_rpm=upshift_rpm,
             gear=gear,
+            num_gears=num_gears,
+            speed_mps=self.car_speed_mps,
             throttle=self.throttle,
             brake=self.brake,
             clutch=self.clutch,
-            fuel=(self.fuel_left / self.fuel_capacity
-                  if self.fuel_capacity > 0 else None),
+            fuel=fuel_fraction,
+            fuel_litres=fuel_left,
+            fuel_capacity_litres=fuel_capacity,
             engine_temp_c=self.engine_temp_c,
             oil_pressure_bar=self.engine_oil_pressure_bar,
             oil_temp_c=self.engine_oil_temp_c,
+            game_paused=self.game_paused,
+            game_in_menus=self.game_in_menus,
+            game_in_replay=self.game_in_replay,
+            control_type=self.control_type,
         )
 
 

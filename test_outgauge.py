@@ -121,14 +121,24 @@ class FlagsTests(unittest.TestCase):
 
 class ToSampleTests(unittest.TestCase):
     def test_to_sample_carries_main_fields(self):
+        # Wire `gear=4` in OutGauge encoding means 3rd gear in our
+        # normalised convention (0=R, 1=N, 2=1st in OutGauge → subtract 1).
         pkt = OutGaugePacket.from_bytes(_make_packet(rpm=5500, gear=4,
                                                     throttle=0.9))
         sample = pkt.to_sample(timestamp=42.0)
         self.assertEqual(sample.timestamp, 42.0)
         self.assertAlmostEqual(sample.rpm, 5500, places=1)
-        self.assertEqual(sample.gear, 4)
+        self.assertEqual(sample.gear, 3)
         self.assertAlmostEqual(sample.throttle, 0.9, places=3)
         self.assertEqual(sample.car, "GTR")
+
+    def test_gear_normalisation(self):
+        # OutGauge: 0=R, 1=N, 2=1st, ... → sample: -1=R, 0=N, 1=1st, ...
+        for outgauge_gear, expected in ((0, -1), (1, 0), (2, 1), (7, 6)):
+            pkt = OutGaugePacket.from_bytes(_make_packet(gear=outgauge_gear))
+            sample = pkt.to_sample(timestamp=0.0)
+            self.assertEqual(sample.gear, expected,
+                             f"OutGauge gear {outgauge_gear}")
 
     def test_to_sample_with_id(self):
         pkt = OutGaugePacket.from_bytes(_make_packet(rpm=1, with_id=True))

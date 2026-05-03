@@ -148,6 +148,55 @@ class ToSampleTests(unittest.TestCase):
         sample = pkt.to_sample(timestamp=0.0)
         self.assertIsNone(sample.fuel)
 
+    def test_sample_carries_full_r3e_field_set(self):
+        pkt = R3EPacket.from_bytes(_make_packet(
+            engine_rpm=6000.0, max_engine_rpm=8500.0, upshift_rpm=8200.0,
+            gear=3, num_gears=6, throttle=0.7, brake=0.2, clutch=0.05,
+            car_speed_mps=42.0, fuel_left=24.0, fuel_capacity=70.0,
+            engine_temp_c=88.0, oil_temp_c=102.0, oil_pressure_bar=4.0,
+            paused=False, in_menus=True, in_replay=False,
+        ))
+        sample = pkt.to_sample(timestamp=0.0)
+        self.assertAlmostEqual(sample.rpm, 6000.0, places=1)
+        self.assertAlmostEqual(sample.max_rpm, 8200.0, places=1)
+        self.assertAlmostEqual(sample.upshift_rpm, 8200.0, places=1)
+        self.assertEqual(sample.gear, 3)
+        self.assertEqual(sample.num_gears, 6)
+        self.assertAlmostEqual(sample.throttle, 0.7, places=3)
+        self.assertAlmostEqual(sample.brake, 0.2, places=3)
+        self.assertAlmostEqual(sample.clutch, 0.05, places=3)
+        self.assertAlmostEqual(sample.speed_mps, 42.0, places=2)
+        self.assertAlmostEqual(sample.fuel, 24.0 / 70.0, places=4)
+        self.assertAlmostEqual(sample.fuel_litres, 24.0, places=2)
+        self.assertAlmostEqual(sample.fuel_capacity_litres, 70.0, places=2)
+        self.assertAlmostEqual(sample.engine_temp_c, 88.0, places=2)
+        self.assertAlmostEqual(sample.oil_temp_c, 102.0, places=2)
+        self.assertAlmostEqual(sample.oil_pressure_bar, 4.0, places=2)
+        self.assertFalse(sample.game_paused)
+        self.assertTrue(sample.game_in_menus)
+        self.assertFalse(sample.game_in_replay)
+
+    def test_sample_game_state_flags(self):
+        pkt = R3EPacket.from_bytes(_make_packet(
+            paused=True, in_menus=True, in_replay=True,
+        ))
+        sample = pkt.to_sample(timestamp=0.0)
+        self.assertTrue(sample.game_paused)
+        self.assertTrue(sample.game_in_menus)
+        self.assertTrue(sample.game_in_replay)
+
+    def test_num_gears_negative_becomes_none(self):
+        pkt = R3EPacket.from_bytes(_make_packet(num_gears=-1))
+        sample = pkt.to_sample(timestamp=0.0)
+        self.assertIsNone(sample.num_gears)
+
+    def test_upshift_rpm_zero_becomes_none(self):
+        pkt = R3EPacket.from_bytes(_make_packet(upshift_rpm=0.0,
+                                                max_engine_rpm=9000.0))
+        sample = pkt.to_sample(timestamp=0.0)
+        self.assertIsNone(sample.upshift_rpm)
+        self.assertAlmostEqual(sample.max_rpm, 9000.0, places=1)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -160,11 +160,13 @@ class OutGaugePacket:
         )
 
     def to_sample(self, timestamp: Optional[float] = None) -> TelemetrySample:
+        # OutGauge encodes gear as 0=R, 1=N, 2=1st...; normalise by -1 so it
+        # matches the package-wide convention (-1=R, 0=N, 1+ forward).
         return TelemetrySample(
             timestamp=time.monotonic() if timestamp is None else timestamp,
             rpm=self.rpm,
             speed_mps=self.speed_mps,
-            gear=self.gear,
+            gear=self.gear - 1,
             throttle=self.throttle,
             brake=self.brake,
             clutch=self.clutch,
