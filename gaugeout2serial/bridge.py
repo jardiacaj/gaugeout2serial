@@ -98,8 +98,7 @@ class Bridge:
             self._peak_rpm = 0.0
 
         current_state = self._classify(seconds_since_packet, seconds_since_nonzero_rpm)
-        full_scale_rpm = (self._peak_rpm * REDLINE_FRACTION
-                          if self._peak_rpm > 0 else 0.0)
+        full_scale_rpm = self._compute_full_scale_rpm()
 
         for device in self.devices:
             if current_state == DeviceState.NO_DATA:
@@ -122,6 +121,16 @@ class Bridge:
             for device in self.devices:
                 device.heartbeat()
             self._last_heartbeat_time = now
+
+    def _compute_full_scale_rpm(self) -> float:
+        """Prefer the source's authoritative redline (`sample.max_rpm`) over
+        autodiscovery — sims like R3E publish a per-car upshift point, so
+        we don't need to wait until the player out-revs the bootstrap."""
+        if self._last_sample is not None and self._last_sample.max_rpm:
+            return self._last_sample.max_rpm * REDLINE_FRACTION
+        if self._peak_rpm > 0:
+            return self._peak_rpm * REDLINE_FRACTION
+        return 0.0
 
     @staticmethod
     def _classify(seconds_since_packet: float,

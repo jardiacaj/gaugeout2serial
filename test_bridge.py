@@ -70,6 +70,20 @@ class BridgeStateTests(unittest.TestCase):
         self.assertEqual(self._last_state_event(), "telemetry")
         self.assertGreater(self.bridge._peak_rpm, 0)
 
+    def test_authoritative_max_rpm_overrides_autodiscovered_peak(self):
+        # When a sample carries max_rpm (R3E does, OutGauge does not), the
+        # bridge should bypass the autodiscovered peak and scale the bar
+        # against the source's redline directly.
+        sample_with_redline = TelemetrySample(timestamp=0.0, rpm=2000.0,
+                                              max_rpm=8000.0)
+        self.fake_source.queue.append(sample_with_redline)
+        self.bridge._tick(now=0.5)
+        last_telemetry_event = [e for e in self.fake_device.events
+                                if e[0] == "telemetry"][-1]
+        _, _, observed_full_scale = last_telemetry_event
+        self.assertAlmostEqual(observed_full_scale, 8000.0 * REDLINE_FRACTION,
+                               places=3)
+
     def test_full_scale_uses_redline_fraction(self):
         self.fake_source.queue.append(_sample(rpm=8000))
         self.bridge._tick(now=0.5)

@@ -22,7 +22,9 @@ from .bridge import Bridge
 from .devices.base import Device
 from .devices.discovery import all_device_classes, auto_discover_devices
 from .devices.moza_r5.device import DEFAULT_BAUD_RATE as MOZA_R5_BAUD_RATE, MozaR5
+from .sources.base import TelemetrySource
 from .sources.outgauge import OutGaugeSource
+from .sources.r3e import R3ESource
 
 
 CHILD_TERM_TIMEOUT_SECONDS = 5.0
@@ -37,11 +39,18 @@ def _parse_args(argv) -> argparse.Namespace:
                "The bridge exits when the game exits.",
     )
 
-    src = ap.add_argument_group("source (OutGauge UDP)")
-    src.add_argument("--host", default=OutGaugeSource.DEFAULT_HOST,
-                     help=f"UDP host to bind (default {OutGaugeSource.DEFAULT_HOST})")
-    src.add_argument("--port", type=int, default=OutGaugeSource.DEFAULT_PORT,
-                     help=f"UDP port (default {OutGaugeSource.DEFAULT_PORT})")
+    src = ap.add_argument_group("source")
+    src.add_argument("--source", choices=("outgauge", "r3e"), default="outgauge",
+                     help="telemetry source (default outgauge — BeamNG, LFS, etc.; "
+                          "use r3e for RaceRoom via a shmem→UDP relay)")
+    src.add_argument("--outgauge-host", default=OutGaugeSource.DEFAULT_HOST,
+                     help=f"OutGauge UDP host (default {OutGaugeSource.DEFAULT_HOST})")
+    src.add_argument("--outgauge-port", type=int, default=OutGaugeSource.DEFAULT_PORT,
+                     help=f"OutGauge UDP port (default {OutGaugeSource.DEFAULT_PORT})")
+    src.add_argument("--r3e-host", default=R3ESource.DEFAULT_HOST,
+                     help=f"R3E relay UDP host (default {R3ESource.DEFAULT_HOST})")
+    src.add_argument("--r3e-port", type=int, default=R3ESource.DEFAULT_PORT,
+                     help=f"R3E relay UDP port (default {R3ESource.DEFAULT_PORT})")
 
     dev = ap.add_argument_group("devices")
     dev.add_argument("--moza-r5-devpath", default=None,
@@ -59,6 +68,12 @@ def _parse_args(argv) -> argparse.Namespace:
                     help="optional game command to run alongside the bridge "
                          "(use `--` to separate from gaugeout2serial flags)")
     return ap.parse_args(argv)
+
+
+def _resolve_source(args: argparse.Namespace) -> TelemetrySource:
+    if args.source == "r3e":
+        return R3ESource(host=args.r3e_host, port=args.r3e_port)
+    return OutGaugeSource(host=args.outgauge_host, port=args.outgauge_port)
 
 
 def _resolve_devices(args: argparse.Namespace) -> List[Device]:
@@ -96,9 +111,10 @@ def main(argv=None) -> int:
 
     summary = ", ".join(f"{d.name} ({getattr(d, 'devpath', '?')})" for d in devices)
     print(f"devices: {summary}")
-    print(f"listening for OutGauge on {args.host}:{args.port}")
 
-    source = OutGaugeSource(host=args.host, port=args.port)
+    source = _resolve_source(args)
+    print(f"listening for {source.name} on "
+          f"{getattr(source, 'host', '?')}:{getattr(source, 'port', '?')}")
     bridge = Bridge(source=source, devices=devices, verbose=args.verbose)
 
     command = _strip_separator(args.command)

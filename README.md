@@ -2,14 +2,19 @@
 
 [![CI](https://github.com/jardiacaj/gaugeout2serial/actions/workflows/ci.yml/badge.svg)](https://github.com/jardiacaj/gaugeout2serial/actions/workflows/ci.yml)
 
-Bridge an OutGauge UDP telemetry stream (BeamNG.drive, LFS, anything that
-emits the standard 92/96-byte OutGauge packet) to a serial-attached racing-
-wheel dash on Linux.
+Bridge sim-racing telemetry to a serial-attached racing-wheel dash on Linux.
 
-OutGauge is the source-side common denominator. Each supported wheel speaks
-its own serial dialect, so device-specific framing lives in its own module
-(currently `protocol.py` for the Moza dash); adding a new wheel means adding
-a new protocol/wheel module pair, not changing the receive loop.
+Telemetry comes in over UDP from any of the supported sources, gets
+normalised into a sim-agnostic `TelemetrySample`, and is written out as
+the device-specific serial frames each wheel expects.
+
+Currently supported sources:
+
+- **OutGauge UDP** — BeamNG.drive, LFS, and anything else that emits the
+  standard 92/96-byte LFS-format packet.
+- **R3E (RaceRoom)** — RaceRoom doesn't emit UDP natively; you run a
+  Windows-side `shmem→UDP` relay inside the same Proton/Wine prefix as
+  the game and point this source at the relay's port.
 
 Currently supported devices:
 
@@ -82,9 +87,30 @@ every iteration (≥1 Hz when idle, ≈packet rate when active).
 
 ### Sim
 
-Anything that emits OutGauge UDP. For BeamNG.drive, enable it under
-*Options → Others → OutGauge*. The bridge defaults to UDP port `4444`;
-match whatever you set in the sim, or pass `--port`.
+**OutGauge sims** (BeamNG.drive, LFS, …) — enable OutGauge in the sim's
+options. The bridge defaults to UDP port `4444`; match whatever you set
+in the sim, or pass `--outgauge-port`.
+
+**RaceRoom (R3E)** — RaceRoom only exposes telemetry via Windows shared
+memory, so on Linux you need a relay inside the Proton prefix:
+
+1. Find the prefix: Steam app id `211500`, located at
+   `~/.local/share/Steam/steamapps/compatdata/211500/pfx`
+   (or `~/.steam/steam/...` depending on your Steam install).
+2. Drop a Windows R3E shmem→UDP relay (e.g. OverTake's
+   *Telemetry Tool for R3E*) into `pfx/drive_c/relay/`.
+3. Install `protontricks` (`apt install protontricks` or the Flatpak).
+4. Start RaceRoom from Steam, then in a terminal:
+   ```bash
+   protontricks-launch --appid 211500 \
+     ~/.local/share/Steam/steamapps/compatdata/211500/pfx/drive_c/relay/relay.exe \
+     --send 127.0.0.1:6000
+   ```
+   The exact `--send` flag depends on the relay; check its docs.
+5. Run the bridge in R3E mode:
+   ```bash
+   gaugeout2serial --source r3e --r3e-port 6000
+   ```
 
 ## Quick start
 
@@ -131,9 +157,12 @@ state and propagates the game's exit code as its own.
 ```
 gaugeout2serial [options]
 
-  source (OutGauge UDP):
-    --host HOST                 UDP host to bind (default 0.0.0.0)
-    --port N                    UDP port (default 4444)
+  source:
+    --source {outgauge,r3e}     telemetry source (default outgauge)
+    --outgauge-host HOST        OutGauge UDP host (default 0.0.0.0)
+    --outgauge-port N           OutGauge UDP port (default 4444)
+    --r3e-host HOST             R3E relay UDP host (default 0.0.0.0)
+    --r3e-port N                R3E relay UDP port (default 6000)
 
   devices:
     --moza-r5-devpath PATH      explicit Moza R5 serial path

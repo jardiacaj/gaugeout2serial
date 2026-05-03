@@ -17,6 +17,7 @@ from .devices.discovery import all_device_classes, auto_discover_devices
 from .devices.moza_r5.device import MozaR5
 from .sources.base import TelemetrySource
 from .sources.outgauge import OutGaugeFlag, OutGaugePacket, OutGaugeSource
+from .sources.r3e import R3EPacket, R3ESource
 from .telemetry import TelemetrySample
 
 __all__ = [
@@ -26,6 +27,7 @@ __all__ = [
     "TelemetrySample",
     "TelemetrySource",
     "OutGaugeSource", "OutGaugePacket", "OutGaugeFlag",
+    "R3ESource", "R3EPacket",
     "Device", "DeviceState",
     "auto_discover_devices", "all_device_classes",
     "MozaR5",
